@@ -1,0 +1,98 @@
+Para criar um banco de dados para uma empresa de rastreamento veicular, você precisará projetar uma estrutura que armazene informações relevantes sobre os veículos, clientes, dispositivos de rastreamento e dados de localização. Aqui está um exemplo de como você pode estruturar o banco de dados:
+
+### **1. Estrutura de Tabelas**
+
+#### **Tabela: clientes**
+Armazena informações sobre os clientes da empresa.
+```sql
+CREATE TABLE clientes (
+    id_cliente INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    telefone VARCHAR(20),
+    endereco TEXT,
+    data_cadastro DATE NOT NULL DEFAULT CURRENT_DATE
+);
+```
+
+#### **Tabela: veiculos**
+Armazena informações sobre os veículos rastreados.
+```sql
+CREATE TABLE veiculos (
+    id_veiculo INT AUTO_INCREMENT PRIMARY KEY,
+    id_cliente INT NOT NULL,
+    placa VARCHAR(10) UNIQUE NOT NULL,
+    modelo VARCHAR(50),
+    marca VARCHAR(50),
+    ano INT,
+    cor VARCHAR(20),
+    FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON DELETE CASCADE
+);
+```
+
+#### **Tabela: dispositivos**
+Armazena informações sobre os dispositivos de rastreamento.
+```sql
+CREATE TABLE dispositivos (
+    id_dispositivo INT AUTO_INCREMENT PRIMARY KEY,
+    id_veiculo INT NOT NULL,
+    numero_serie VARCHAR(50) UNIQUE NOT NULL,
+    data_instalacao DATE NOT NULL,
+    status ENUM('ativo', 'inativo', 'manutencao') DEFAULT 'ativo',
+    FOREIGN KEY (id_veiculo) REFERENCES veiculos(id_veiculo) ON DELETE CASCADE
+);
+```
+
+#### **Tabela: localizacoes**
+Armazena os dados de localização em tempo real ou histórico.
+```sql
+CREATE TABLE localizacoes (
+    id_localizacao INT AUTO_INCREMENT PRIMARY KEY,
+    id_dispositivo INT NOT NULL,
+    latitude DECIMAL(10, 8) NOT NULL,
+    longitude DECIMAL(11, 8) NOT NULL,
+    velocidade DECIMAL(5, 2),
+    direcao VARCHAR(10),
+    data_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_dispositivo) REFERENCES dispositivos(id_dispositivo) ON DELETE CASCADE
+);
+```
+
+### **2. Requisitos do Sistema**
+1. **Servidor de Banco de Dados:** Use um SGBD como MySQL, PostgreSQL ou SQL Server.
+2. **Backend:** Crie APIs para inserir e consultar os dados. Por exemplo, pode usar Python com Flask/Django.
+3. **Frontend:** Uma interface gráfica para visualizar e gerenciar veículos, dispositivos e localizações.
+4. **Integração GPS:** Configure a integração com dispositivos GPS para receber dados de localização.
+5. **Segurança:** Garanta segurança com autenticação de usuários e criptografia de dados sensíveis.
+
+### **3. Exemplos de Consultas**
+
+- **Inserir nova localização:**
+```sql
+INSERT INTO localizacoes (id_dispositivo, latitude, longitude, velocidade, direcao) 
+VALUES (1, -23.550520, -46.633308, 60.5, 'N');
+```
+
+- **Consultar últimas localizações de um veículo:**
+```sql
+SELECT l.latitude, l.longitude, l.data_hora
+FROM localizacoes l
+INNER JOIN dispositivos d ON l.id_dispositivo = d.id_dispositivo
+INNER JOIN veiculos v ON d.id_veiculo = v.id_veiculo
+WHERE v.placa = 'ABC1234'
+ORDER BY l.data_hora DESC
+LIMIT 10;
+```
+
+- **Listar todos os veículos de um cliente:**
+```sql
+SELECT v.placa, v.modelo, v.marca
+FROM veiculos v
+INNER JOIN clientes c ON v.id_cliente = c.id_cliente
+WHERE c.nome = 'João Silva';
+```
+
+### **4. Monitoramento em Tempo Real**
+Para rastrear veículos em tempo real:
+- Use WebSockets para enviar atualizações ao cliente.
+- As localizações podem ser enviadas do dispositivo para uma API, que armazena os dados na tabela `localizacoes` e os exibe em um mapa como o Google Maps ou Leaflet.
